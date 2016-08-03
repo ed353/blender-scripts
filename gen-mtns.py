@@ -16,6 +16,8 @@ Blender script to procedurally generate a mountainous terrain.
 import bpy
 import bmesh
 import mathutils
+import math
+import random
 
 scene = bpy.context.scene
 
@@ -51,10 +53,11 @@ def filter_selection(where, param=None):
             loc = vtx.co
             dist = loc[0]*loc[0] + loc[1]*loc[1] + loc[2]*loc[2]
             if(where==BORDER):
-                if(dist <= param**2):
-                    vtx.select=False
-                else:
-                    vtx.select=True
+                r = random.random()
+                p_sel = 1.0 / (1.0 + \
+                    math.exp(\
+                        (( -dist + param**2) / float(2.0 * param))))
+                vtx.select=(r <= p_sel)
             if(where==CENTER):
                 if(dist > param**2):
                     vtx.select=False
@@ -99,12 +102,13 @@ def create_ground(origin, sub_levels=6):
     # create some main peaks
     bump_loc=BORDER
     bump(iters=1, pct=2.5, dz=1.9, size=2.5, where=bump_loc,
-        where_param=9.0)
+        where_param=8.0)
+    '''
     bump(iters=5, pct=1.5, dz=0.9, size=2.4, \
         prop_falloff='SHARP', where=bump_loc, where_param=6.0)
     bump(iters=3, pct=1.0, dz=0.25, size=3.0)
     bump(iters=5, pct=0.5, dz=0.1, size=4.0, prop_falloff='RANDOM')
-    
+    '''
     bpy.ops.object.mode_set(mode='OBJECT')
 
 if __name__=='__main__':
