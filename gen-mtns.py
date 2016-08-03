@@ -26,6 +26,8 @@ CENTER=2
 LINE=3
 
 def delete_everything():
+    if not scene.objects:
+        return
     for ob in scene.objects:
         ob.select = True
     bpy.ops.object.mode_set(mode = 'OBJECT')
@@ -96,7 +98,7 @@ def create_ground(origin, sub_levels=6):
     
     # create some main peaks
     bump_loc=BORDER
-    bump(iters=1, pct=2.0, dz=1.8, size=2.5, where=bump_loc,
+    bump(iters=1, pct=2.5, dz=1.9, size=2.5, where=bump_loc,
         where_param=9.0)
     bump(iters=5, pct=1.5, dz=0.9, size=2.4, \
         prop_falloff='SHARP', where=bump_loc, where_param=6.0)
