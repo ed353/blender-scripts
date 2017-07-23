@@ -2,16 +2,6 @@
 Emily Donahue, 2016
 Blender script to procedurally generate a mountainous terrain.
 '''
-# TODO: how to create rivulets?
-# TODO: instead of hard cutoffs for where mountains are located,
-#       use a probability distribution
-# TODO: recursively generate smaller mountains? 
-# TODO: make smaller mountains depend on where larger mountains
-#       are?
-# TODO: add location option for generating mtns on a semi-circle
-# TODO: do this for an island arcipelago
-# TODO: make bump args depend on how many divisions to put in
-#       initial plane
 
 import bpy
 import bmesh
@@ -51,7 +41,7 @@ def filter_selection(where, param=None):
             vtx.select=True
         else:
             loc = vtx.co
-            dist = loc[0]*loc[0] + loc[1]*loc[1] + loc[2]*loc[2]
+            dist = loc[1]*loc[1]
             if(where==BORDER):
                 r = random.random()
                 p_sel = 1.0 / (1.0 + \
@@ -71,6 +61,20 @@ def filter_selection(where, param=None):
     bpy.context.scene.objects.active = \
         bpy.context.scene.objects.active
 
+def raise_middle(dz=2.0, size=15.0):
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all()
+    filter_selection(CENTER, param = 1.0)
+    bpy.ops.transform.translate(
+            value=(0.0, 0.0, dz),
+            constraint_axis=(False, False, True), # constrain along Z
+            constraint_orientation='GLOBAL',
+            proportional='ENABLED',
+            proportional_edit_falloff='SPHERE',
+            proportional_size=size
+        )
+    bpy.ops.mesh.select_all(action='DESELECT')
+
 def bump(iters, pct, dz, size, prop_falloff='SMOOTH',
         where=EVERYWHERE, where_param=None):
     for i in range(iters):
@@ -85,31 +89,43 @@ def bump(iters, pct, dz, size, prop_falloff='SMOOTH',
             proportional_size=size
         )
 
-def create_ground(origin, sub_levels=6):
-    bpy.ops.mesh.primitive_plane_add(
-        radius=10.0,
-        enter_editmode=True,
-        location=origin
+def create_ground(origin, ratio=2):
+    n_subdiv = 32
+    
+    bpy.ops.mesh.primitive_grid_add(
+        radius=15.0,
+        enter_editmode=False,
+        location=origin,
+        x_subdivisions=(ratio * n_subdiv),
+        y_subdivisions=n_subdiv
     )
-    for i in range(sub_levels):
-        bpy.ops.mesh.subdivide()
 
+    bpy.ops.transform.resize(
+        value=(float(ratio), 1.0, 1.0)
+    )
+    bpy.ops.object.mode_set(mode='EDIT')
+    
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.mesh.quads_convert_to_tris(use_beauty=True)
     bpy.ops.mesh.select_all(action='DESELECT')
     
     # create some main peaks
+    raise_middle()
+    
     bump_loc=CENTER
-    bump(iters=1, pct=2.5, dz=1.9, size=2.5, where=bump_loc,
-        where_param=6.0)
-    bump(iters=5, pct=1.5, dz=0.9, size=2.4, \
-        prop_falloff='SHARP', where=bump_loc, where_param=4.0)
-    bump(iters=3, pct=1.0, dz=0.35, size=3.0)
-    bump(iters=5, pct=0.5, dz=0.2, size=2.0, prop_falloff='RANDOM')
+    
+    # bump(iters=1, pct=1.0, dz=3.2, size=4.0, where=bump_loc,
+    #     where_param=3.0)
+    bump(iters=5, pct=2.5, dz=0.9, size=2.4, \
+        prop_falloff='SPHERE', where=bump_loc, \
+        where_param=7.5)
+    bump(iters=3, pct=1.0, dz=0.5, size=3.0)
+    bump(iters=5, pct=5.0, dz=0.1, size=2.5, prop_falloff='RANDOM')
     
     bpy.ops.object.mode_set(mode='OBJECT')
-
+    
+    
 if __name__=='__main__':
-    delete_everything()
-    create_ground((0.0,0.0,0.0))
+    # delete_everything()
+    create_ground((0.0,0.0,0.0), ratio=2.5)

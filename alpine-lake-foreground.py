@@ -2,16 +2,6 @@
 Emily Donahue, 2016
 Blender script to procedurally generate a mountainous terrain.
 '''
-# TODO: how to create rivulets?
-# TODO: instead of hard cutoffs for where mountains are located,
-#       use a probability distribution
-# TODO: recursively generate smaller mountains? 
-# TODO: make smaller mountains depend on where larger mountains
-#       are?
-# TODO: add location option for generating mtns on a semi-circle
-# TODO: do this for an island arcipelago
-# TODO: make bump args depend on how many divisions to put in
-#       initial plane
 
 import bpy
 import bmesh
@@ -100,14 +90,24 @@ def create_ground(origin, sub_levels=6):
     bpy.ops.mesh.select_all(action='DESELECT')
     
     # create some main peaks
-    bump_loc=CENTER
-    bump(iters=1, pct=2.5, dz=1.9, size=2.5, where=bump_loc,
-        where_param=6.0)
-    bump(iters=5, pct=1.5, dz=0.9, size=2.4, \
-        prop_falloff='SHARP', where=bump_loc, where_param=4.0)
-    bump(iters=3, pct=1.0, dz=0.35, size=3.0)
-    bump(iters=5, pct=0.5, dz=0.2, size=2.0, prop_falloff='RANDOM')
-    
+    bump_loc=BORDER
+    bump(iters=1, pct=3.5, 
+        dz=2.1, size=5.0, 
+        prop_falloff='SHARP',
+        where=bump_loc, where_param=12.5)
+    bump(iters=1, pct=2.5,
+        dz=1.0, size=2.5, 
+        prop_falloff='SMOOTH',
+        where=bump_loc, where_param=11.0)
+    bump(iters=1, pct=1.25, 
+        dz=0.5, size=1.25, 
+        prop_falloff='RANDOM',
+        where=bump_loc, where_param=1.0)
+    bump(iters=1, pct=1.0, 
+        dz=0.15, size=5.0, 
+        prop_falloff='RANDOM',
+        where=bump_loc, where_param=1.0)
+
     bpy.ops.object.mode_set(mode='OBJECT')
 
 if __name__=='__main__':
