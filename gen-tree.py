@@ -8,6 +8,7 @@ import bmesh
 import mathutils
 import math
 import random
+import os
 
 # import blendutils as butils
 from blendutils import *
@@ -106,6 +107,9 @@ def extrude_trunk(dist):
     )
 
 if __name__=='__main__':
+    
+    print(os.getcwd())
+    
     delete_everything()
     start_tree()
     
@@ -127,4 +131,3 @@ if __name__=='__main__':
         extrude_trunk(dist)
         dist = dist * 0.95
     '''
-    
