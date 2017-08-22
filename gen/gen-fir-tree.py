@@ -4,6 +4,8 @@ Blender script to generate a pine bough
 
 Update 2017-08-21: re-named from 'gen-pine-tree.py' to specify that this script 
   will generate a fir-type tree
+  
+  TODO: figure out how to make cones more 'pinched'
 '''
 
 import bpy
@@ -26,101 +28,20 @@ from blendutils import *
 
 scene = bpy.context.scene
             
-def start_tree(scale=1.0):
-    bpy.ops.mesh.primitive_cylinder_add(
-        radius=1,
-        vertices=10,
-        location=(0,0,1),
+
+def create_cone(scale=1.0):
+
+    bpy.ops.mesh.primitive_cone_add(
+        vertices = 12,
+        location = ((0, 0, 0)),
         enter_editmode=True
-    )      
+    )
     
     bpy.ops.transform.resize(
         value = (scale, scale, scale)
     )
-  
-    bpy.ops.mesh.select_all(action='TOGGLE')
-    bpy.ops.mesh.select_mode(type = 'FACE')
-        
-    obj = bpy.context.edit_object
-    msh = obj.data
-    bm = bmesh.from_edit_mesh(msh)
-    bm.faces[8].select = True
-    bmesh.update_edit_mesh(msh, True)
-    
-    return bm.faces[8]
 
-def get_top_face_idx():
-    obj = bpy.context.edit_object
-    msh = obj.data
-    bm = bmesh.from_edit_mesh(msh)
-    bm.normal_update()
-    
-    idx = -1
-    z_vec = mathutils.Vector((0.0, 0.0, 1.0))
-    for i in range(len(bm.faces)):
-        n = bm.faces[i].normal
-        if(n.dot(z_vec) > 0.5):
-            idx = i
-            break
-        
-    return idx
-        
-    
-def extrude_trunk(dist):
-    
-    r_angle = random.random() * 360.0
-    
-    vec_x = mathutils.Vector((1., 0., 0.))
-    mat_rot = mathutils.Matrix.Rotation(
-        math.radians(r_angle), 
-        4, 'Z')
-    rot_axis = mat_rot * vec_x
-    
-    # tilt face a bit
-    bpy.ops.transform.rotate(
-        value = -0.15,
-        axis = rot_axis
-    )
-    
-    # shrink
-    bpy.ops.transform.resize(
-        value = (0.9, 0.9, 0.9)
-    )
-    # extrude
-    obj = bpy.context.edit_object
-    msh = obj.data
-    bm = bmesh.from_edit_mesh(msh)
-    bm.normal_update()
-    
-    top_idx = get_top_face_idx()
-    trans_vec = bm.faces[top_idx].normal * dist
-    
-    bpy.ops.mesh.extrude_region_move(
-        TRANSFORM_OT_translate={
-            "value": trans_vec
-            }
-        )
-        
-    bm.normal_update()
-    
-    # tilt face a bit
-    bpy.ops.transform.rotate(
-        value = 0.15,
-        axis = rot_axis
-    )
-    
-def create_cone():
-    bpy.ops.mesh.primitive_cone_add(
-        vertices = 10,
-        location = ((0, 0, 0))
-    )
-
-if __name__=='__main__':
-    delete_everything()
-    create_cone()
-    
     # triangulate, then subdivide
-    edit_mode()
     bpy.ops.mesh.quads_convert_to_tris(use_beauty=False)
     bpy.ops.mesh.subdivide(smoothness=0)
     
@@ -133,8 +54,31 @@ if __name__=='__main__':
     bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Cast")
     
     # random displacement
-    bpy.ops.object.modifier_add(type='DISPLACE')
-    bpy.ops.texture.new()
-    bpy.ops.texture.new()
-    bpy.context.object.modifiers["Displace"].direction = 'Z'
-    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Displace")
+    rand_tex = bpy.data.textures.new('rand_tex', type='NOISE')
+    activ_obj = bpy.context.active_object
+    displ_mod = activ_obj.modifiers.new("rand_disp", type='DISPLACE')
+    displ_mod.texture = rand_tex
+    displ_mod.mid_level = 0.5
+    displ_mod.strength = 0.1
+    bpy.ops.object.modifier_apply(apply_as='DATA', 
+                                  modifier="rand_disp")
+    
+    select_none()
+
+if __name__=='__main__':
+    
+    object_mode()
+    delete_everything()
+    
+    scales = [1.0, 2.0, 3.0]
+    
+    last_scale = 0.0
+    for scale in scales:
+        create_cone(scale=scale)
+        select_all()
+        # delta_z = (last_scale + scale) / 2
+        delta_z = scale / 2  
+        last_scale = scale              
+        bpy.ops.transform.translate(value=(0, 0, delta_z))
+      
+    

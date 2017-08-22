@@ -26,7 +26,7 @@ from blendutils import *
 
 scene = bpy.context.scene
 
-def start_tree(scale=1.0):
+def start_trunk(scale=1.0):
     bpy.ops.mesh.primitive_cylinder_add(
         radius=1,
         vertices=10,
@@ -110,8 +110,9 @@ def extrude_trunk(dist):
     )
 
 if __name__=='__main__':
+    
     delete_everything()
-    start_tree()
+    start_trunk()
     
     dist = 2.0
     for i in range(20):
