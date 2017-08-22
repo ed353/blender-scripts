@@ -1,6 +1,9 @@
 '''
 Emily Donahue, 2016
-Blender script to procedurally generate a mountainous terrain.
+Blender script to generate a pine bough
+
+Update 2017-08-21: re-named from 'gen-pine-tree.py' to specify that this script 
+  will generate a fir-type tree
 '''
 
 import bpy
@@ -8,21 +11,20 @@ import bmesh
 import mathutils
 import math
 import random
-import gen_pine_bough
-import os
 
-# import blendutils as butils
+# custom module imports
+import os, sys
+
+file_path = os.getcwd() # if started from icon, cwd = ~
+scripts_path = os.path.join(file_path, 'blender/scripts')
+utils_path = os.path.join(scripts_path, 'utils')
+
+if utils_path not in sys.path:
+    sys.path.append(utils_path)
+
 from blendutils import *
 
 scene = bpy.context.scene
-
-def delete_everything():
-    if not scene.objects or len(scene.objects) == 0:
-        return
-    for ob in scene.objects:
-        ob.select = True
-    bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.delete()
             
 def start_tree(scale=1.0):
     bpy.ops.mesh.primitive_cylinder_add(
@@ -106,30 +108,33 @@ def extrude_trunk(dist):
         value = 0.15,
         axis = rot_axis
     )
+    
+def create_cone():
+    bpy.ops.mesh.primitive_cone_add(
+        vertices = 10,
+        location = ((0, 0, 0))
+    )
 
 if __name__=='__main__':
     delete_everything()
-    start_tree()
+    create_cone()
     
-    dist = 2.0
-    for i in range(20):
-        extrude_trunk(dist)
-        dist = dist * 0.95
-        
+    # triangulate, then subdivide
+    edit_mode()
+    bpy.ops.mesh.quads_convert_to_tris(use_beauty=False)
+    bpy.ops.mesh.subdivide(smoothness=0)
+    
+    # cast to sphere
     object_mode()
-    select_none()
+    bpy.ops.object.modifier_add(type='CAST')
+    bpy.context.object.modifiers["Cast"].use_x = False
+    bpy.context.object.modifiers["Cast"].use_y = False
+    bpy.context.object.modifiers["Cast"].factor = 1.0
+    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Cast")
     
-    
-    print(os.getcwd())
-    gen_pine_bough.gen_pine_bough()
-    '''  
-    bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.select_all(action='TOGGLE')
-    
-    start_tree(scale=0.75)
-    dist = 0.75 * 2.0
-    for i in range(20):
-        extrude_trunk(dist)
-        dist = dist * 0.95
-    '''
-    
+    # random displacement
+    bpy.ops.object.modifier_add(type='DISPLACE')
+    bpy.ops.texture.new()
+    bpy.ops.texture.new()
+    bpy.context.object.modifiers["Displace"].direction = 'Z'
+    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Displace")

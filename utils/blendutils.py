@@ -10,7 +10,6 @@ import mathutils
 import math
 import random
 
-scene = bpy.context.scene
 
 def object_mode():
   bpy.ops.object.mode_set(mode = 'OBJECT')
@@ -36,7 +35,8 @@ def delete_everything():
   select_all()
   bpy.ops.object.delete(use_global=False)
 
-def cursor_to_origin():
+# scene = bpy.context.scene
+def cursor_to_origin(scene):
   scene.cursor_location = ((0.0, 0.0, 0.0))
 
 def select(name):

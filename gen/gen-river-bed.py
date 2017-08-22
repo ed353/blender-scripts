@@ -1,13 +1,31 @@
 '''
-Emily Donahue, 2016
-Blender script to procedurally generate a mountainous terrain.
+Emily Donahue
+July 23rd, 2017
+
+Blender script to procedurally generate a river bed terrain
 '''
 
+# Blender imports
 import bpy
 import bmesh
+
+# Math-y imports
 import mathutils
 import math
 import random
+
+# Custom module imports
+import os, sys
+
+file_path = os.getcwd() # if started from icon, cwd = ~
+scripts_path = os.path.join(file_path, 'blender/scripts')
+utils_path = os.path.join(scripts_path, 'utils')
+
+if utils_path not in sys.path:
+    sys.path.append(utils_path)
+
+# import blendutils as butils
+from blendutils import *
 
 scene = bpy.context.scene
 
@@ -16,24 +34,18 @@ EVERYWHERE=0
 BORDER=1
 CENTER=2
 LINE=3
-
-def delete_everything():
-    if not scene.objects:
-        return
-    for ob in scene.objects:
-        ob.select = True
-    bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.delete()
-    
-def select_all():
-    for ob in scene.objects:
-        ob.select = True
         
-def select_none():
-    for ob in scene.objects:
-        ob.select = False
-        
+'''
+Filter where points are selected on the mesh surface
+INPUTS:
+    where: location of where to select points, from 
+           numeric definitions at the top of this script
+    param: (optional) numeric parameter to specify how tightly
+           around the location points are selected
+'''
 def filter_selection(where, param=None):
+    
+    edit_mode()
     mesh=bmesh.from_edit_mesh(bpy.context.object.data)
     selected=[v for v in mesh.verts if v.select]
     for vtx in selected:
@@ -61,10 +73,13 @@ def filter_selection(where, param=None):
     bpy.context.scene.objects.active = \
         bpy.context.scene.objects.active
 
-def raise_middle(dz=2.0, size=15.0):
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.select_all()
+def lower_middle(dz=-2.0, size=15.0):
+   
+    edit_mode()
+    select_all()
+    
     filter_selection(CENTER, param = 1.0)
+    
     bpy.ops.transform.translate(
             value=(0.0, 0.0, dz),
             constraint_axis=(False, False, True), # constrain along Z
@@ -73,10 +88,13 @@ def raise_middle(dz=2.0, size=15.0):
             proportional_edit_falloff='SPHERE',
             proportional_size=size
         )
-    bpy.ops.mesh.select_all(action='DESELECT')
+    
+    select_none()
+    object_mode()
 
 def bump(iters, pct, dz, size, prop_falloff='SMOOTH',
         where=EVERYWHERE, where_param=None):
+    edit_mode()
     for i in range(iters):
         bpy.ops.mesh.select_random(percent=pct)
         filter_selection(where, where_param)
@@ -89,43 +107,51 @@ def bump(iters, pct, dz, size, prop_falloff='SMOOTH',
             proportional_size=size
         )
 
-def create_ground(origin, ratio=2):
-    n_subdiv = 32
+def create_ground(origin, ratio=2, n_subdivisions=32):
     
     bpy.ops.mesh.primitive_grid_add(
         radius=15.0,
         enter_editmode=False,
         location=origin,
-        x_subdivisions=(ratio * n_subdiv),
-        y_subdivisions=n_subdiv
+        x_subdivisions=(ratio * n_subdivisions),
+        y_subdivisions=n_subdivisions
     )
 
     bpy.ops.transform.resize(
         value=(float(ratio), 1.0, 1.0)
     )
-    bpy.ops.object.mode_set(mode='EDIT')
     
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.select_all(action='SELECT')
+    edit_mode()
+
+    select_all()
     bpy.ops.mesh.quads_convert_to_tris(use_beauty=True)
-    bpy.ops.mesh.select_all(action='DESELECT')
+    select_none()
+
+def create_bumps(bump_loc=CENTER):
     
-    # create some main peaks
-    raise_middle()
-    
-    bump_loc=CENTER
-    
-    # bump(iters=1, pct=1.0, dz=3.2, size=4.0, where=bump_loc,
-    #     where_param=3.0)
-    bump(iters=5, pct=2.5, dz=0.9, size=2.4, \
-        prop_falloff='SPHERE', where=bump_loc, \
-        where_param=7.5)
-    bump(iters=3, pct=1.0, dz=0.5, size=3.0)
-    bump(iters=5, pct=5.0, dz=0.1, size=2.5, prop_falloff='RANDOM')
-    
-    bpy.ops.object.mode_set(mode='OBJECT')
+    # deep, sharper bumps
+    bump(iters=5, pct=1.0, dz=-2.0, size=5.0,
+         prop_falloff='SHARP', where=bump_loc,
+         where_param=2.0)
+    # medium, shallower bumps
+    bump(iters=5, pct=2.5, dz=-0.5, size=2.4, 
+         prop_falloff='SPHERE', where=bump_loc, 
+         where_param=12.0)
+    # random small bumps all over
+    bump(iters=5, pct=5.0, dz=-0.1, size=2.5, 
+         prop_falloff='RANDOM')
     
     
 if __name__=='__main__':
+    
+    object_mode()
     delete_everything()
-    create_ground((0.0,0.0,0.0), ratio=2.5)
+    create_ground((0.0,0.0,0.0), ratio=2.0)
+    
+    # create main channel
+    lower_middle(dz=-2.0, size=8.0)
+    # create random bumps along channel of various sizes
+    create_bumps()
+    
+    object_mode()
+    
