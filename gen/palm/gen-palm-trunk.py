@@ -1,9 +1,6 @@
 '''
-Emily Donahue, 2016
-Blender script to procedurally generate a mountainous terrain.
-
-Update 2017-08-21: re-named from 'gen-pine-tree-unsure.py' to specify
-  that this produces a Ponderosa pine-like tree
+Emily Donahue, 2017
+Blender script to procedurally generate palm tree trunk
 '''
 
 import bpy
@@ -26,31 +23,42 @@ from blendutils import *
 
 scene = bpy.context.scene
 
-def start_trunk(scale=1.0):
+# def start_trunk(scale=1.0):
+def make_chunk_at(bottom_origin, scale=1.0):
+    
+    z_trans = mathutils.Vector((0., 0., 1.))
+    location = bottom_origin + z_trans
     bpy.ops.mesh.primitive_cylinder_add(
         radius=1,
         vertices=10,
-        location=(0,0,1),
-        enter_editmode=True
-    )      
-    
-    bpy.ops.transform.resize(
-        value = (scale, scale, scale)
+        location=location
+        # enter_editmode=True
     )
-  
-    bpy.ops.mesh.select_all(action='TOGGLE')
-    bpy.ops.mesh.select_mode(type = 'FACE')
-        
-    obj = bpy.context.edit_object
-    msh = obj.data
-    bm = bmesh.from_edit_mesh(msh)
-    bm.faces.ensure_lookup_table()
-    bm.faces[8].select = True
-    bmesh.update_edit_mesh(msh, True)
     
-    return bm.faces[8]
+    chunk = bpy.context.object
+    select_none()
+    
+    return chunk
+
+def get_top_center(chunk_obj):
+    
+    select_none()
+    select_obj_by_name(chunk_obj.name)
+    
+    bpy.ops.object.mode_set(mode='EDIT')
+    top_idx = get_top_face_idx()
+    
+    print(top_idx)
+    obj = bpy.context.edit_object
+    bm = bmesh.from_edit_mesh(obj.data)
+    top_center = bm.faces[top_idx].calc_center_median()
+    
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
+    return top_center
 
 def get_top_face_idx():
+    
     obj = bpy.context.edit_object
     msh = obj.data
     bm = bmesh.from_edit_mesh(msh)
@@ -66,7 +74,10 @@ def get_top_face_idx():
             break
         
     return idx
-        
+
+def select_obj_by_name(obj_name):
+    obj = bpy.data.objects[obj_name]
+    obj.select = True
     
 def extrude_trunk(dist):
     
@@ -114,24 +125,19 @@ def extrude_trunk(dist):
 if __name__=='__main__':
     
     delete_everything()
-    start_trunk()
     
-    dist = 2.0
-    for i in range(20):
-        extrude_trunk(dist)
-        dist = dist * 0.95
+    prev_top = mathutils.Vector((0.0, 0.0, 0.0))
+
+    for i in range(1):
+        chunk = make_chunk_at(prev_top)
+        print(chunk.name)
         
-    object_mode()
-    select_none()
-    
-    '''  
-    bpy.ops.object.mode_set(mode = 'OBJECT')
-    bpy.ops.object.select_all(action='TOGGLE')
-    
-    start_tree(scale=0.75)
-    dist = 0.75 * 2.0
-    for i in range(20):
-        extrude_trunk(dist)
-        dist = dist * 0.95
-    '''
-    
+        prev_top = get_top_center(chunk)
+        top_idx = get_top_idx()
+        print(top_idx)
+        # select_none()
+        
+        print(prev_top)
+   
+    # object_mode()
+    # select_none()
