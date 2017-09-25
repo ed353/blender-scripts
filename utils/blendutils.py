@@ -35,10 +35,30 @@ def delete_everything():
   select_all()
   bpy.ops.object.delete(use_global=False)
 
-# scene = bpy.context.scene
-def cursor_to_origin(scene):
-  scene.cursor_location = ((0.0, 0.0, 0.0))
+def cursor_to(location):
+  scene = bpy.context.scene
+  scene.cursor_location=location
+
+def cursor_to_origin():
+  cursor_to((0., 0., 0.))
 
 def select(name):
   select_none()
   bpy.context.scene.objects.active = bpy.data.objects[name]
+
+def bmesh_from_object(obj):
+  
+  bm = None
+  mode = bpy.context.mode
+  
+  if mode == 'OBJECT':
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+  elif mode == 'EDIT_MESH':
+    bm = bmesh.from_edit_mesh(obj.data)
+
+  return bm
+
+def set_active_object(obj):
+  obj.select = True
+  bpy.context.scene.objects.active = obj
